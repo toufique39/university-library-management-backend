@@ -14,9 +14,9 @@ export const auth = betterAuth({
 
   secret: process.env.BETTER_AUTH_SECRET,
 
-  trustedOrigins: ["http://localhost:10000",
-    "https://pizzahub39.netlify.app",
-  ],
+  trustedOrigins: [
+    process.env.CLIENT_URL,
+  ].filter(Boolean),
 
   emailAndPassword: {
     enabled: true,

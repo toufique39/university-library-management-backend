@@ -17,10 +17,10 @@ import {
 
 const router = express.Router();
 
-// Read permissions
-router.get("/", requireAuth,requireRole("member","admin","librarian"), getAllBooks);
-router.get("/categories", requireAuth,requireRole("member","admin","librarian"), getBookCategories);
-router.get("/:id", requireAuth,requireRole("member","admin","librarian"), getBookById);
+// Public catalog reads
+router.get("/", getAllBooks);
+router.get("/categories", getBookCategories);
+router.get("/:id", getBookById);
 
 // Write permissions
 router.post(

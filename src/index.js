@@ -18,9 +18,24 @@ const PORT = 5000;
 
 
 //cors
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:3000",
+  "http://localhost:10000",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:10000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow server-to-server requests (no Origin header)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -83,14 +98,6 @@ app.get(
 );
 
 
-// Health check
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "University Library API is running!",
-  });
-});
-
 // Database health check
 app.get("/api/health/db", async (req, res) => {
   try {
@@ -121,6 +128,19 @@ async function startServer() {
     await db.collection("books").createIndex(
       { isbn: 1 },
       { unique: true }
+    );
+
+    // Migrate accounts created with the old "customer" default role.
+    await db.collection("user").updateMany(
+      {
+        $or: [
+          { role: "customer" },
+          { role: { $exists: false } },
+        ],
+      },
+      {
+        $set: { role: "member" },
+      }
     );
 
      // Borrowing system indexes

@@ -270,18 +270,19 @@ export const createBook = async (req, res) => {
       updatedAt: new Date(),
     };
      
-    const collection = await getBooksCollection();
+    const db = await connectDB();
+    const collection = db.collection("books");
 
-   const categoryExists = await db.collection("categories").findOne({
-  name: category.trim(),
-});
+    const categoryExists = await db.collection("categories").findOne({
+      name: category.trim(),
+    });
 
-if (!categoryExists) {
-  return res.status(400).json({
-    success: false,
-    message: "Please select a valid book category.",
-  });
-}
+    if (!categoryExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Please select a valid book category.",
+      });
+    }
 
     const result = await collection.insertOne(book);
 
@@ -310,19 +311,6 @@ export const updateBook = async (req, res) => {
       });
     }
     
-    if (updates.category) {
-  const categoryExists = await db.collection("categories").findOne({
-    name: updates.category,
-  });
-
-  if (!categoryExists) {
-    return res.status(400).json({
-      success: false,
-      message: "Please select a valid book category.",
-    });
-  }
-}
-
     const collection = await getBooksCollection();
 
     const existingBook = await collection.findOne({
@@ -414,6 +402,21 @@ export const updateBook = async (req, res) => {
       updates.availableCopies = newTotal - borrowedCopies;
     }
 
+    if (updates.category) {
+      const db = await connectDB();
+
+      const categoryExists = await db.collection("categories").findOne({
+        name: updates.category,
+      });
+
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: "Please select a valid book category.",
+        });
+      }
+    }
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({
         success: false,
@@ -454,10 +457,39 @@ export const deleteBook = async (req, res) => {
       });
     }
 
-    const collection = await getBooksCollection();
+    const db = await connectDB();
+    const collection = db.collection("books");
+    const bookId = new ObjectId(id);
+
+    const [activeBorrows, pendingRequests] = await Promise.all([
+      db.collection("borrowRecords").countDocuments({
+        bookId,
+        status: "issued",
+      }),
+      db.collection("borrowRequests").countDocuments({
+        bookId,
+        status: "pending",
+      }),
+    ]);
+
+    if (activeBorrows > 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Cannot delete this book while copies are still borrowed.",
+      });
+    }
+
+    if (pendingRequests > 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Cannot delete this book while borrow requests are pending.",
+      });
+    }
 
     const result = await collection.deleteOne({
-      _id: new ObjectId(id),
+      _id: bookId,
     });
 
     if (result.deletedCount === 0) {
