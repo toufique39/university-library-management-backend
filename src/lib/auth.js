@@ -1,9 +1,20 @@
 
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import { connectDB, client } from "../config/db.js";
+
+import {
+  connectDB,
+  client,
+} from "../config/db.js";
 
 const db = await connectDB();
+
+const trustedOrigins = [
+  process.env.CLIENT_URL,
+  ...(process.env.NODE_ENV !== "production"
+    ? ["http://localhost:10000"]
+    : []),
+].filter(Boolean);
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, {
@@ -14,9 +25,7 @@ export const auth = betterAuth({
 
   secret: process.env.BETTER_AUTH_SECRET,
 
-  trustedOrigins: [
-    process.env.CLIENT_URL,
-  ].filter(Boolean),
+  trustedOrigins,
 
   emailAndPassword: {
     enabled: true,
@@ -28,12 +37,12 @@ export const auth = betterAuth({
         type: "string",
         required: true,
         defaultValue: "member",
-        input: true,
-        transform: {
-          input: (value) =>
-            ["member", "librarian"].includes(value) ? value : "member",
-        },
+        input: false,
       },
     },
+  },
+
+  advanced: {
+    useSecureCookies: true,
   },
 });
