@@ -19,7 +19,7 @@ const PORT = 5000;
 
 //cors
 const allowedOrigins = [
-  process.env.CLIENT_URL,
+  process.env.CLIENT_URL
 ].filter(Boolean);
 
 app.use(

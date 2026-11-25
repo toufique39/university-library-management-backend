@@ -4,7 +4,7 @@ export async function ensureLibraryIndexes(db) {
   const borrowRecords = db.collection("borrowRecords");
 
   await Promise.all([
-    // Prevent duplicate pending requests for the same member and book
+    // Prevent duplicate pending requests for the same member 
     borrowRequests.createIndex(
       { activeKey: 1 },
       { unique: true, sparse: true }
